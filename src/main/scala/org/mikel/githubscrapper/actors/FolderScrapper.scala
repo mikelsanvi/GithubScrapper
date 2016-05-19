@@ -1,13 +1,14 @@
-package org.mikel.githubscrapper
+package org.mikel.githubscrapper.actors
 
 import akka.actor.{Actor, ActorLogging}
-import org.mikel.githubscrapper.FolderScrapper.ScrapFolder
 import play.api.libs.ws.WSClient
 
 /**
   * Created by mikel on 17/05/16.
   */
 class FolderScrapper(word:String, wsClient: WSClient) extends Actor with ActorLogging {
+
+  import FolderScrapper._
 
   def receive = {
     case ScrapFolder(folder) =>

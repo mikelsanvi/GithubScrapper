@@ -1,6 +1,7 @@
 package org.mikel.githubscrapper
 
 import akka.actor.{ActorSystem, Props}
+import org.mikel.githubscrapper.actors.Recepcionist
 
 /**
   * Created by mikel on 17/05/16.

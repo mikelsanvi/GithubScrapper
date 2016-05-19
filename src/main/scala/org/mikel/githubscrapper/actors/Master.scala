@@ -1,6 +1,7 @@
-package org.mikel.githubscrapper
+package org.mikel.githubscrapper.actors
 
 import akka.actor.{Actor, ActorLogging, Props}
+import org.mikel.githubscrapper.{GithubRepository, RepositoriesStream}
 import play.api.libs.ws.WSClient
 
 

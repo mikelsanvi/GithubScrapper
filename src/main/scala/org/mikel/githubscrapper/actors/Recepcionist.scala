@@ -1,7 +1,6 @@
-package org.mikel.githubscrapper
+package org.mikel.githubscrapper.actors
 
 import akka.actor.{Actor, ActorLogging, Props}
-import org.mikel.githubscrapper.Master.Start
 import play.api.libs.ws.ning.NingWSClient
 
 /**
@@ -19,7 +18,7 @@ class Recepcionist extends Actor with ActorLogging {
     case Search(word) =>
       val scrapper = context.actorOf( Props(new Master(word,client)))
       context.become(process(children + word ))
-      scrapper ! Start
+      scrapper ! Master.Start
     case SearchResults(word, links) =>
       log.info(links.mkString(s"The word $word was found in: \n","\n","\n"))
     case SearchFinished(word) =>

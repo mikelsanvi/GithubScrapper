@@ -1,12 +1,13 @@
-package org.mikel.githubscrapper
+package org.mikel.githubscrapper.actors
 
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.routing.RoundRobinPool
 import com.lambdaworks.jacks.JacksMapper
+import org.mikel.githubscrapper.GithubRepository
 import play.api.libs.ws.WSClient
 
-import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success}
 
 /**
   * Created by mikel on 17/05/16.
