@@ -1,7 +1,6 @@
 package org.mikel.githubscrapper
 
 import akka.actor.{Actor, ActorLogging, Props}
-import akka.routing.RoundRobinPool
 import play.api.libs.ws.WSClient
 
 /**
@@ -12,39 +11,49 @@ class Master(word:String, wsClient: WSClient) extends Actor with ActorLogging {
 
   val repoSearcher = context.actorOf(Props(new PublicRepoIterator(wsClient)), s"publicRepoIterator$word")
 
-  def receive = findRepos(List())
-
-  def findRepos(filesFound:List[String]):Receive = {
+  def receive = {
     case Start =>
       repoSearcher ! PublicRepoIterator.FindRepos
+      context.become(findRepos())
+  }
+
+  def findRepos():Receive = {
     case RepositoriesFound(repos) =>
       if(repos.isEmpty) {
-        context.parent ! Recepcionist.SearchFinished(word, filesFound)
+        context.parent ! Recepcionist.SearchFinished(word)
       } else {
         repos.foreach(repo => {
           val repoScrapper = context.actorOf(Props(new RepoScrapper(wsClient, word,repo)), s"Scrapper${repo.id}$word")
           repoScrapper ! RepoScrapper.SearchInRepo
         })
 
-        context.become(processing(filesFound, repos))
+        context.become(processing(repos))
       }
   }
 
-  def processing(filesFound:List[String], repositoriesLeft:Set[GithubRepository]): Receive = {
-    case RepoScrapped(repo,filesThatMatches) =>
-      log.info(filesThatMatches.mkString(s"The word $word was found in: \n","\n","\n"))
-      val rest = repositoriesLeft - repo
-      if(rest.isEmpty) {
-        context.become(findRepos(filesFound ++ filesThatMatches))
-        repoSearcher ! PublicRepoIterator.FindRepos
-      } else {
-        context.become(processing(filesFound ++ filesThatMatches,  rest))
-      }
+  def processing(repositories: Set[GithubRepository]): Receive = {
+    case RepoResults(repo,links) =>
+      context.parent ! Recepcionist.SearchResults(word, links)
+      checkRepositoriesLeft(repositories, repo)
+    case NoMatchingResults(repo) =>
+      checkRepositoriesLeft(repositories, repo)
   }
+
+  private def checkRepositoriesLeft(repositories:Set[GithubRepository], repo: GithubRepository): Unit = {
+    val remainingRepositories = repositories - repo
+    if(remainingRepositories.isEmpty) {
+      context.become(findRepos())
+      repoSearcher ! PublicRepoIterator.FindRepos
+    } else {
+      context.become(processing(remainingRepositories))
+    }
+  }
+
 }
 
 object Master {
   case object Start
-  case class RepoScrapped(repo: GithubRepository, filesThatMatches: List[String])
+  case class RepoResults(repo: GithubRepository, links: List[String])
+  case class NoMatchingResults(repo: GithubRepository)
   case class RepositoriesFound(repos: Set[GithubRepository])
 }
