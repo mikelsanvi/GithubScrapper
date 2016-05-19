@@ -15,7 +15,8 @@ class RepoScrapper(wsClient: WSClient, word: String,repo:GithubRepository) exten
 
   import RepoScrapper._
 
-  val folderScrapper = context.actorOf(Props(new FolderScrapper(word,wsClient)), s"${repo.id}folderScrapper$word")
+  val folderScrapper = context.actorOf(Props(new FolderScrapper(word,wsClient)).withRouter(RoundRobinPool(5)),
+    s"${repo.id}folderScrapper$word")
 
   def receive = {
     case SearchInRepo =>
