@@ -1,6 +1,6 @@
 package org.mikel.githubscrapper
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, Props}
 import org.mikel.githubscrapper.Master.Start
 import play.api.libs.ws.ning.NingWSClient
 
