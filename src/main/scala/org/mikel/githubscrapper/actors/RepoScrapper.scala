@@ -12,11 +12,11 @@ import scala.util.{Failure, Success}
 /**
   * Created by mikel on 17/05/16.
   */
-class RepoScrapper(wsClient: WSClient, word: String,repo:GithubRepository) extends Actor with ActorLogging{
+class RepoScrapper(word: String,repo:GithubRepository)(implicit wsClient: WSClient) extends Actor with ActorLogging{
 
   import RepoScrapper._
 
-  val folderScrapper = context.actorOf(Props(new FolderScrapper(word,wsClient)).withRouter(RoundRobinPool(5)),
+  val folderScrapper = context.actorOf(Props(new FolderScrapper(word)).withRouter(RoundRobinPool(5)),
     s"${repo.id}folderScrapper$word")
 
   def receive = {

@@ -19,9 +19,9 @@ object RepositoriesStream {
 
   val log = LoggerFactory.getLogger(getClass)
 
-  def apply(wsClient:WSClient) = build(FIRST_REPO_TO_CHECK, wsClient)
+  def apply(wsClient:WSClient) = build(FIRST_REPO_TO_CHECK)(wsClient)
 
-  private def build(from:Int,wsClient:WSClient): RepositoriesStream = {
+  private def build(from:Int)(implicit wsClient:WSClient): RepositoriesStream = {
     val reposFuture = wsClient.url("https://api.github.com/repositories?since=" + from).get()
     val promise = Promise[Stream[GithubRepository]]()
 
@@ -37,7 +37,7 @@ object RepositoriesStream {
             name <- json.get("full_name")
           } yield (GithubRepository(id.asInstanceOf[Int], name.asInstanceOf[String]))
 
-          promise.success(repositories.toStream #::: build(repositories.map(_.id).max + 1, wsClient))
+          promise.success(repositories.toStream #::: build(repositories.map(_.id).max + 1))
         } catch {
           case ex:Throwable =>
             log.error( "Error retrieving repos", ex)

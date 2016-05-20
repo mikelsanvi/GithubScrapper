@@ -10,13 +10,13 @@ class Recepcionist extends Actor with ActorLogging {
 
   import Recepcionist._
 
-  lazy val client = NingWSClient()
+  implicit val client = NingWSClient()
 
   def receive = process(Set())
 
   def process(children:Set[String]):Receive={
     case Search(word) =>
-      val scrapper = context.actorOf( Props(new Master(word,client)))
+      val scrapper = context.actorOf( Props(new Master(word)))
       context.become(process(children + word ))
       scrapper ! Master.Start
     case SearchResults(word, links) =>

@@ -6,7 +6,7 @@ import play.api.libs.ws.WSClient
 /**
   * Created by mikel on 17/05/16.
   */
-class FolderScrapper(word:String, wsClient: WSClient) extends Actor with ActorLogging {
+class FolderScrapper(word:String)(implicit wsClient: WSClient) extends Actor with ActorLogging {
 
   import FolderScrapper._
 

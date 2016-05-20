@@ -9,7 +9,7 @@ import org.mikel.githubscrapper.RepositoriesStream.RepositoriesStream
 /**
   * Created by mikel on 17/05/16.
   */
-class Master(word:String, wsClient: WSClient) extends Actor with ActorLogging {
+class Master(word:String)(implicit wsClient: WSClient) extends Actor with ActorLogging {
   import Master._
 
   val CONCURRENT_SCRAPPINGS = 5
@@ -46,7 +46,7 @@ class Master(word:String, wsClient: WSClient) extends Actor with ActorLogging {
   }
 
   private def searchInRepo(repo:GithubRepository): Unit ={
-    val repoScrapper = context.actorOf(Props(new RepoScrapper(wsClient, word, repo)), s"Scrapper${repo.id}$word")
+    val repoScrapper = context.actorOf(Props(new RepoScrapper(word, repo)), s"Scrapper${repo.id}$word")
     repoScrapper ! RepoScrapper.SearchInRepo
   }
 }
