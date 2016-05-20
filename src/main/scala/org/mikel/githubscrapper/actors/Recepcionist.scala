@@ -23,8 +23,9 @@ class Recepcionist extends Actor with ActorLogging {
       log.info(links.mkString(s"The word $word was found in: \n","\n","\n"))
     case SearchFinished(word) =>
       log.info(s"Search of word $word has finished")
-      context.become(process( children - word ))
-      if(children.isEmpty)
+      val remainingChildren = children - word
+      context.become(process( remainingChildren ))
+      if(remainingChildren.isEmpty)
         context.system.terminate()
   }
 

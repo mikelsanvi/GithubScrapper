@@ -23,13 +23,19 @@ class RepoScrapper(wsClient: WSClient, word: String,repo:GithubRepository) exten
     case SearchInRepo =>
       wsClient.url(repo.branchesUrl).get().onComplete {
         case Success(response) =>
-          val folders = JacksMapper.readValue[List[Map[String, Any]]](response.body).
-            map(json => repo.branchTreeUrl(json.get("name").get.asInstanceOf[String]))
-          if(folders.isEmpty)
-            sendResponse(List())
-          else {
-            folders.foreach(folder =>  folderScrapper ! FolderScrapper.ScrapFolder(folder))
-            context.become(processing(List(), folders.toSet))
+          try {
+            val folders = JacksMapper.readValue[List[Map[String, Any]]](response.body).
+              map(json => repo.branchTreeUrl(json.get("name").get.asInstanceOf[String]))
+            if (folders.isEmpty)
+              sendResponse(List())
+            else {
+              folders.foreach(folder => folderScrapper ! FolderScrapper.ScrapFolder(folder))
+              context.become(processing(List(), folders.toSet))
+            }
+          }catch {
+            case ex:Throwable =>
+              log.error(ex, s"Error getting branches of ${repo.name}")
+              sendResponse(List())
           }
         case Failure(ex) =>
           log.error(ex, s"Error getting branches of ${repo.name}")

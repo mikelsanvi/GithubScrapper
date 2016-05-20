@@ -3,6 +3,7 @@ package org.mikel.githubscrapper.actors
 import akka.actor.{Actor, ActorLogging, Props}
 import org.mikel.githubscrapper.{GithubRepository, RepositoriesStream}
 import play.api.libs.ws.WSClient
+import org.mikel.githubscrapper.RepositoriesStream.RepositoriesStream
 
 
 /**
@@ -15,14 +16,18 @@ class Master(word:String, wsClient: WSClient) extends Actor with ActorLogging {
 
   def receive = {
     case Start =>
-      val (initialBatch, remainingRepositories) = RepositoriesStream().splitAt(CONCURRENT_SCRAPPINGS)
+      val (initialBatch, remainingRepositories) = RepositoriesStream(wsClient).splitAt(CONCURRENT_SCRAPPINGS)
 
-      initialBatch.foreach( searchInRepo )
-
-      context.become(processing(remainingRepositories))
+      if(initialBatch.isEmpty) {
+        context.parent ! Recepcionist.SearchFinished(word)
+        context.stop(self)
+      } else {
+        initialBatch.foreach( searchInRepo )
+        context.become(processing(remainingRepositories))
+      }
   }
 
-  def processing(repositoriesStream: Stream[GithubRepository]): Receive = {
+  def processing(repositoriesStream: RepositoriesStream): Receive = {
     case RepoResults(repo,links) =>
       context.parent ! Recepcionist.SearchResults(word, links)
       searchInNextRepository(repositoriesStream)
@@ -30,7 +35,7 @@ class Master(word:String, wsClient: WSClient) extends Actor with ActorLogging {
       searchInNextRepository(repositoriesStream)
   }
 
-  def searchInNextRepository(repositoriesStream: Stream[GithubRepository]): Unit = {
+  private def searchInNextRepository(repositoriesStream: RepositoriesStream): Unit = {
     if(!repositoriesStream.isEmpty) {
       searchInRepo(repositoriesStream.head)
       context.become(processing(repositoriesStream.tail))
