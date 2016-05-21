@@ -15,11 +15,9 @@ object RepositoriesStream {
 
   type RepositoriesStream = Stream[GithubRepository]
 
-  val FIRST_REPO_TO_CHECK = 59000000
-
   val log = LoggerFactory.getLogger(getClass)
 
-  def apply(wsClient:WSClient) = build(FIRST_REPO_TO_CHECK)(wsClient)
+  def apply(wsClient:WSClient) = build(Config.initialRepository)(wsClient)
 
   private def build(from:Int)(implicit wsClient:WSClient): RepositoriesStream = {
     val reposFuture = wsClient.url("https://api.github.com/repositories?since=" + from).get()

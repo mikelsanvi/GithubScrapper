@@ -1,7 +1,7 @@
 package org.mikel.githubscrapper.actors
 
 import akka.actor.{Actor, ActorLogging, Props}
-import org.mikel.githubscrapper.{GithubRepository, RepositoriesStream}
+import org.mikel.githubscrapper.{Config, GithubRepository, RepositoriesStream}
 import play.api.libs.ws.WSClient
 import org.mikel.githubscrapper.RepositoriesStream.RepositoriesStream
 
@@ -12,43 +12,47 @@ import org.mikel.githubscrapper.RepositoriesStream.RepositoriesStream
 class Master(word:String)(implicit wsClient: WSClient) extends Actor with ActorLogging {
   import Master._
 
-  val CONCURRENT_SCRAPPINGS = 5
-
   def receive = {
     case Start =>
-      val (initialBatch, remainingRepositories) = RepositoriesStream(wsClient).splitAt(CONCURRENT_SCRAPPINGS)
-
+      val (initialBatch, remainingRepositories) = repositoriesStream().splitAt(Config.batchSize)
       if(initialBatch.isEmpty) {
         context.parent ! Recepcionist.SearchFinished(word)
         context.stop(self)
       } else {
         initialBatch.foreach( searchInRepo )
-        context.become(processing(remainingRepositories))
+        context.become(processing(remainingRepositories, initialBatch.toSet))
       }
   }
 
-  def processing(repositoriesStream: RepositoriesStream): Receive = {
+  def processing(repositoriesStream: RepositoriesStream, ongoing:Set[GithubRepository]): Receive = {
     case RepoResults(repo,links) =>
+      log.info("links received " + repo)
       context.parent ! Recepcionist.SearchResults(word, links)
-      searchInNextRepository(repositoriesStream)
+      searchInNextRepository(repositoriesStream, ongoing - repo )
     case NoMatchingResults(repo) =>
-      searchInNextRepository(repositoriesStream)
+      searchInNextRepository(repositoriesStream,ongoing - repo)
   }
 
-  private def searchInNextRepository(repositoriesStream: RepositoriesStream): Unit = {
+  private def searchInNextRepository(repositoriesStream: RepositoriesStream, ongoing:Set[GithubRepository]): Unit = {
     if(!repositoriesStream.isEmpty) {
       searchInRepo(repositoriesStream.head)
-      context.become(processing(repositoriesStream.tail))
+      context.become(processing(repositoriesStream.tail, ongoing + repositoriesStream.head))
     } else {
-      context.parent ! Recepcionist.SearchFinished(word)
-      context.stop(self)
+      if(ongoing.isEmpty) {
+        context.parent ! Recepcionist.SearchFinished(word)
+        context.stop(self)
+      } else
+        context.become(processing(repositoriesStream, ongoing))
     }
   }
 
   private def searchInRepo(repo:GithubRepository): Unit ={
-    val repoScrapper = context.actorOf(Props(new RepoScrapper(word, repo)), s"Scrapper${repo.id}$word")
+    val repoScrapper = context.actorOf(repoScrapperProp(repo), s"Scrapper${repo.id}$word")
     repoScrapper ! RepoScrapper.SearchInRepo
   }
+
+  def repositoriesStream(): RepositoriesStream = RepositoriesStream(wsClient)
+  def repoScrapperProp(repo:GithubRepository) = Props(new RepoScrapper(word, repo))
 }
 
 object Master {
