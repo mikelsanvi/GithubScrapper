@@ -25,7 +25,7 @@ class Master(word:String)(implicit wsClient: WSClient) extends Actor with ActorL
   }
 
   def processing(repositoriesStream: RepositoriesStream, ongoing:Set[GithubRepository]): Receive = {
-    case RepoResults(repo,links) =>
+    case RepoResults(repo, links) =>
       log.info("links received " + repo)
       context.parent ! Recepcionist.SearchResults(word, links)
       searchInNextRepository(repositoriesStream, ongoing - repo )
@@ -57,6 +57,6 @@ class Master(word:String)(implicit wsClient: WSClient) extends Actor with ActorL
 
 object Master {
   case object Start
-  case class RepoResults(repo: GithubRepository, links: List[String])
+  case class RepoResults(repo: GithubRepository, links: Set[String])
   case class NoMatchingResults(repo: GithubRepository)
 }

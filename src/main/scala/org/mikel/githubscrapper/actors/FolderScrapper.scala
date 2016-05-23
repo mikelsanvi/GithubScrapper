@@ -12,7 +12,7 @@ class FolderScrapper(word:String)(implicit wsClient: WSClient) extends Actor wit
 
   def receive = {
     case ScrapFolder(folder) =>
-      sender ! RepoScrapper.FilesFound(folder, List(folder+"/fakefile.txt"))
+      sender ! RepoScrapper.FilesFound(folder, Set(folder+"/fakefile.txt"))
   }
 }
 

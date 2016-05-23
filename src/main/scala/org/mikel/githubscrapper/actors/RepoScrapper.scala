@@ -4,9 +4,10 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.routing.RoundRobinPool
 import com.lambdaworks.jacks.JacksMapper
 import org.mikel.githubscrapper.GithubRepository
-import play.api.libs.ws.WSClient
+import play.api.libs.ws.{WSClient, WSResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 /**
@@ -16,34 +17,37 @@ class RepoScrapper(word: String,repo:GithubRepository)(implicit wsClient: WSClie
 
   import RepoScrapper._
 
-  val folderScrapper = context.actorOf(Props(new FolderScrapper(word)).withRouter(RoundRobinPool(5)),
+  val folderScrapper = context.actorOf(folderScrapperProps(),
     s"${repo.id}folderScrapper$word")
 
   def receive = {
     case SearchInRepo =>
-      wsClient.url(repo.branchesUrl).get().onComplete {
+      getBranches().onComplete {
         case Success(response) =>
           try {
             val folders = JacksMapper.readValue[List[Map[String, Any]]](response.body).
               map(json => repo.branchTreeUrl(json.get("name").get.asInstanceOf[String]))
             if (folders.isEmpty)
-              sendResponse(List())
+              sendResponse(Set())
             else {
               folders.foreach(folder => folderScrapper ! FolderScrapper.ScrapFolder(folder))
-              context.become(processing(List(), folders.toSet))
+              context.become(processing(Set(), folders.toSet))
             }
           }catch {
             case ex:Throwable =>
               log.error(ex, s"Error getting branches of ${repo.name}")
-              sendResponse(List())
+              sendResponse(Set())
           }
         case Failure(ex) =>
           log.error(ex, s"Error getting branches of ${repo.name}")
-          sendResponse(List())
+          sendResponse(Set())
       }
   }
 
-  def sendResponse(files:List[String]): Unit = {
+  def getBranches(): Future[WSResponse]= wsClient.url(repo.branchesUrl).get()
+  def folderScrapperProps() = Props(new FolderScrapper(word)).withRouter(RoundRobinPool(5))
+
+  def sendResponse(files:Set[String]): Unit = {
     if(files.isEmpty)
       context.parent ! Master.NoMatchingResults(repo)
     else
@@ -51,7 +55,7 @@ class RepoScrapper(word: String,repo:GithubRepository)(implicit wsClient: WSClie
     context.stop(self)
   }
 
-  def processing(files:List[String], folders:Set[String]): Receive = {
+  def processing(files:Set[String], folders:Set[String]): Receive = {
     case FilesFound(folder, newFiles) =>
       val remainingFolders = folders - folder
       if(remainingFolders.isEmpty)
@@ -63,5 +67,5 @@ class RepoScrapper(word: String,repo:GithubRepository)(implicit wsClient: WSClie
 
 object RepoScrapper {
   case object SearchInRepo
-  case class FilesFound(folder:String, files:List[String])
+  case class FilesFound(folder:String, files:Set[String])
 }

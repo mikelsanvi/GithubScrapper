@@ -14,7 +14,7 @@ import scala.concurrent.duration._
 /**
   * Created by mikel on 20/05/16.
   */
-class MasterTests extends TestKit(ActorSystem("ReceptionistTestActorySystem")) with FunSpecLike
+class MasterTests extends TestKit(ActorSystem("MasterTestActorySystem")) with FunSpecLike
   with MockFactory {
 
   var repoScrapperProbe = TestProbe()
@@ -81,22 +81,25 @@ class MasterTests extends TestKit(ActorSystem("ReceptionistTestActorySystem")) w
       repoScrapperProbe.expectMsgAllOf(500 millis,
         firstBatch.map(repo => RepoScrapper.SearchInRepo):_*)
 
-      firstBatch.foreach(repo =>
-        master ! Master.RepoResults(repo, List(repo.name)))
+      // Some repositories don't return any link
+      firstBatch.foreach(repo => {
+        if(repo.id % 2 == 0)
+          master ! Master.RepoResults(repo, Set(repo.name))
+        else
+          master ! Master.NoMatchingResults(repo)
+      })
 
       master.parent.expectMsgAllOf(500 millis,
-        firstBatch.map(repo => SearchResults(word, List(repo.name))):_*)
+        firstBatch.filter(_.id % 2 == 0).map(repo => SearchResults(word, Set(repo.name))):_*)
 
       repoScrapperProbe.expectMsgAllOf(500 millis,
         secondBatch.map(repo => RepoScrapper.SearchInRepo):_*)
 
       secondBatch.foreach(repo =>
-        master ! Master.RepoResults(repo, List(repo.name)))
-      secondBatch.foreach(repo =>
-        master ! Master.RepoResults(repo, List(repo.name)))
+        master ! Master.RepoResults(repo, Set(repo.name)))
 
       master.parent.expectMsgAllOf(500 millis,
-        secondBatch.map(repo => SearchResults(word, List(repo.name))):_*)
+        secondBatch.map(repo => SearchResults(word, Set(repo.name))):_*)
 
       master.parent.expectMsg(100 millis, Recepcionist.SearchFinished(word))
 

@@ -21,7 +21,7 @@ class ReceptionistTests extends TestKit(ActorSystem("ReceptionistTestActorySyste
     override def scrapperProps(word:String) = Props(new ChildProbeActor(probe))
     override def wsClient: WSClient = c
     override def terminate = probe.ref ! "terminated"
-    override def processResult(word:String, links:List[String]): Unit = probe.ref ! (word, links)
+    override def processResult(word:String, links:Set[String]): Unit = probe.ref ! (word, links)
   }))
 
 
@@ -83,7 +83,7 @@ class ReceptionistTests extends TestKit(ActorSystem("ReceptionistTestActorySyste
 
     it("should process results when a SearchResult arrives") {
       val word = "word"
-      val links = List("link1", "link2")
+      val links = Set("link1", "link2")
       recepcionist ! Recepcionist.SearchResults(word,links)
 
       probe.expectMsg((word,links))

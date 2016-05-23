@@ -30,7 +30,7 @@ class Recepcionist extends Actor with ActorLogging {
         terminate
   }
 
-  def processResult(word:String, links:List[String]): Unit =
+  def processResult(word:String, links:Set[String]): Unit =
     log.info(links.mkString(s"The word $word was found in: \n","\n","\n"))
   def scrapperProps(word:String) = Props(new Master(word))
   def wsClient: WSClient = NingWSClient()
@@ -44,5 +44,5 @@ class Recepcionist extends Actor with ActorLogging {
 object Recepcionist {
   case class Search(word:String)
   case class SearchFinished(word: String)
-  case class SearchResults(word:String, links: List[String])
+  case class SearchResults(word:String, Set: Set[String])
 }
