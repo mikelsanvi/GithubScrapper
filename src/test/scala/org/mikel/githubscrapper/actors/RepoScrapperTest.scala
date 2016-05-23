@@ -3,6 +3,7 @@ package org.mikel.githubscrapper.actors
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{TestKit, TestProbe}
 import org.mikel.githubscrapper.GithubRepository
+import org.mikel.githubscrapper.actors.utils.{ActorWithParentProbe, ChildProbeActor}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.FunSpecLike
 import play.api.libs.ws.{WSClient, WSResponse}
@@ -25,7 +26,7 @@ class RepoScrapperTest extends TestKit(ActorSystem("RepoScrapperTestActorySystem
 
   describe("A RepoScrapper actor") {
     it("should reply with NoMatchingResults when getBranches returns a Failure") {
-      val repoScrapper = new ActorWithParent(Props(new RepoScrapper(word,repo)(wsClient) {
+      val repoScrapper = new ActorWithParentProbe(Props(new RepoScrapper(word,repo)(wsClient) {
         override def getBranches(): Future[WSResponse]= {
           val promise = Promise()
           promise.tryFailure(new RuntimeException())
@@ -40,7 +41,7 @@ class RepoScrapperTest extends TestKit(ActorSystem("RepoScrapperTestActorySystem
     }
 
     it("should reply with NoMatchingResults when getBranches retrieve the wrong message") {
-      val repoScrapper = new ActorWithParent(Props(new RepoScrapper(word,repo)(wsClient) {
+      val repoScrapper = new ActorWithParentProbe(Props(new RepoScrapper(word,repo)(wsClient) {
         override def getBranches(): Future[WSResponse]= Future{
           val response = mock[WSResponse]
           (response.body _).expects().returns("[{\"a\":1}]")
@@ -55,7 +56,7 @@ class RepoScrapperTest extends TestKit(ActorSystem("RepoScrapperTestActorySystem
     }
 
     it("should reply with NoMatchingResults when getBranches retrieve an empty list of branches") {
-      val repoScrapper = new ActorWithParent(Props(new RepoScrapper(word,repo)(wsClient) {
+      val repoScrapper = new ActorWithParentProbe(Props(new RepoScrapper(word,repo)(wsClient) {
         override def getBranches(): Future[WSResponse]= Future{
           val response = mock[WSResponse]
           (response.body _).expects().returns("[]")
@@ -71,7 +72,7 @@ class RepoScrapperTest extends TestKit(ActorSystem("RepoScrapperTestActorySystem
 
     it("should send a ScrapFolder message to the FolderScrapper for each branch found and send back a RepoResults " +
       "when all folder searches have been completed") {
-      val repoScrapper = new ActorWithParent(Props(new RepoScrapper(word,repo)(wsClient) {
+      val repoScrapper = new ActorWithParentProbe(Props(new RepoScrapper(word,repo)(wsClient) {
         override def getBranches(): Future[WSResponse]= Future{
           val response = mock[WSResponse]
           (response.body _).expects().returns("[{\"name\":\"master1\"},{\"name\":\"master2\"},{\"name\":\"master3\"}]")

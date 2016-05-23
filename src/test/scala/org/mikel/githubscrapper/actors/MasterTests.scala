@@ -5,6 +5,7 @@ import akka.testkit.{TestKit, TestProbe}
 import org.mikel.githubscrapper.{Config, GithubRepository}
 import org.mikel.githubscrapper.RepositoriesStream._
 import org.mikel.githubscrapper.actors.Recepcionist.SearchResults
+import org.mikel.githubscrapper.actors.utils.{ActorWithParentProbe, ChildProbeActor}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.FunSpecLike
 import play.api.libs.ws.WSClient
@@ -24,7 +25,7 @@ class MasterTests extends TestKit(ActorSystem("MasterTestActorySystem")) with Fu
 
   describe("A master actor") {
     it("should reply with a SearchFinished and stop itself when it receives a Start and there are no repositories") {
-      val master = new ActorWithParent(Props(new Master(word)(wsClient) {
+      val master = new ActorWithParentProbe(Props(new Master(word)(wsClient) {
         override def repositoriesStream(): RepositoriesStream = Stream()
         override def repoScrapperProp(repo:GithubRepository) =  Props(new ChildProbeActor(repoScrapperProbe))
       }))
@@ -38,7 +39,7 @@ class MasterTests extends TestKit(ActorSystem("MasterTestActorySystem")) with Fu
     it("should send a message for each repo if less than batch size") {
       val repos = (1 to Config.batchSize - 1).map(i => GithubRepository(i,"repo"+i)).toStream
 
-      val master = new ActorWithParent(Props(new Master(word)(wsClient) {
+      val master = new ActorWithParentProbe(Props(new Master(word)(wsClient) {
         override def repositoriesStream(): RepositoriesStream = repos
         override def repoScrapperProp(repo: GithubRepository) = Props(new ChildProbeActor(repoScrapperProbe))
       }))
@@ -54,7 +55,7 @@ class MasterTests extends TestKit(ActorSystem("MasterTestActorySystem")) with Fu
     it(s"should send the ${Config.batchSize} messages when the stream is bigger than the batchSize") {
       val repos = (1 to Config.batchSize + 10).map(i => GithubRepository(i,"repo"+i)).toStream
 
-      val master = new ActorWithParent(Props(new Master(word)(wsClient) {
+      val master = new ActorWithParentProbe(Props(new Master(word)(wsClient) {
         override def repositoriesStream(): RepositoriesStream = repos
         override def repoScrapperProp(repo:GithubRepository) = Props(new ChildProbeActor(repoScrapperProbe))
       }))
@@ -69,7 +70,7 @@ class MasterTests extends TestKit(ActorSystem("MasterTestActorySystem")) with Fu
     it("should reply with a SearchFinished when all repositories have sent results") {
       val repos = (1 to (Config.batchSize * 2 - 1)).map(i => GithubRepository(i,"repo"+i))
 
-      val master = new ActorWithParent(Props(new Master(word)(wsClient) {
+      val master = new ActorWithParentProbe(Props(new Master(word)(wsClient) {
         override def repositoriesStream(): RepositoriesStream = repos.toStream
         override def repoScrapperProp(repo:GithubRepository) = Props(new ChildProbeActor(repoScrapperProbe))
       }))

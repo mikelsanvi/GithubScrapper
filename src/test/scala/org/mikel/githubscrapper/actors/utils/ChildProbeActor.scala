@@ -1,4 +1,4 @@
-package org.mikel.githubscrapper.actors
+package org.mikel.githubscrapper.actors.utils
 
 import akka.actor.Actor
 import akka.testkit.TestProbe

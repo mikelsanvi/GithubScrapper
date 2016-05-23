@@ -2,6 +2,7 @@ package org.mikel.githubscrapper.actors
 
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{TestKit, TestProbe}
+import org.mikel.githubscrapper.actors.utils.ChildProbeActor
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.FunSpecLike
 import play.api.libs.ws.WSClient

@@ -1,12 +1,12 @@
-package org.mikel.githubscrapper.actors
+package org.mikel.githubscrapper.actors.utils
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.actor.{Actor, ActorSystem, Props}
 import akka.testkit.TestProbe
 
 /**
   * Created by mikel on 20/05/16.
   */
-class ActorWithParent(props:Props)(implicit system:ActorSystem) {
+class ActorWithParentProbe(props:Props)(implicit system:ActorSystem) {
 
   val parent = TestProbe()
 
